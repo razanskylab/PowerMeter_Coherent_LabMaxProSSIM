@@ -16,8 +16,8 @@ classdef LabMaxProSSIM < handle
     bytesAvailable;
     measurementMode; %0 = W, 1 = J, 2 = DBM
     wavelength;
-    triggerLevel;
-    triggerLevelPercent; %percentage of the trigger
+    triggerLevel; % in uJ
+    triggerLevelPercent; % in % of absolute range...
     sensitivityLevel; %0 = low, 1 = medium, 2 = high
     measurementRange;
     %     9.1510e-06
@@ -34,7 +34,7 @@ classdef LabMaxProSSIM < handle
   end
 
   properties (Constant) % can only be changed here in the def file
-    COM_PORT = 'COM109'; % com port of diode pm
+    COM_PORT = 'COM22'; % com port of diode pm
     % in geraetemanger: LabMAX-Pro SSIM
     MEASUREMENT_MODE = struct('WATT', 0,'JOULES', 1,'DBM', 2);
     TRIGGER_MODE = struct('INTERNAL',0,'EXTERNAL',1,'CW',2);
@@ -55,8 +55,8 @@ classdef LabMaxProSSIM < handle
     STOP_BITS = 1;
     FLOW_CONTROL = 'none';
     TIME_OUT = 1 ; %[s], serial port communication timenout
-    CONNECT_ON_STARTUP = false;
-    METER_ID = 'Coherent,Inc-LabMax-ProSSIM-V03.00.19-Apr292015'; %used to check connection to correct device, i.e. pm
+    CONNECT_ON_STARTUP = true;
+    METER_ID = 'Coherent,Inc-LabMax-ProSSIM'; %used to check connection to correct device, i.e. pm
   end
 
 
@@ -83,7 +83,7 @@ classdef LabMaxProSSIM < handle
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Constructor and Desctructor
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    function pm = PowerMeter(~,doConnect)
+    function pm = LabMaxProSSIM(~,doConnect)
       % constructor, called when creating instance of this class
       switch nargin
       case 1
@@ -163,7 +163,6 @@ classdef LabMaxProSSIM < handle
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     function [] = set.triggerLevel(pm, level)
-    %percentage of the trigger
       level = level*1e-6;
       fprintf(pm.serialObj,['TRIGger:LEVel ' num2str(level)]);
       pause(0.5);
