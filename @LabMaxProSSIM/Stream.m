@@ -1,4 +1,9 @@
-function [signal, flag, freq] = Stream(pm,nPoints)
+% File: Stream.m @ LabMaxProSSIM
+% Author: Johannes Rebling
+% Mail: johannesrebling@gmail.com
+% Date: unknown
+
+function [signal, flag, freq] = Stream(pm, nPoints)
   switch nargin
   case 1
     pm.Start_Stream();
@@ -11,7 +16,7 @@ function [signal, flag, freq] = Stream(pm,nPoints)
   while true
     nowAvailable = pm.bytesAvailable;
     if nowAvailable > preAvailable
-      availabeString = num_to_SI_string(nowAvailable,3);
+      availabeString = num_to_SI_string(nowAvailable, 3);
       fprintf([availabeString 'B available.\n']);
       preAvailable = nowAvailable;
       pause(0.5);

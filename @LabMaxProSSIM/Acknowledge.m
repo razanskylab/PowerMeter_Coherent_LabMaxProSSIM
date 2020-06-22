@@ -1,7 +1,15 @@
-function [] = Acknowledge(pm)
-  acknowledge = fscanf(pm.serialObj,'%s\n');
-  if ~strcmp(acknowledge,'OK')
-    short_warn('Did not recieved OK!');
-    fprintf(['Acknowledge was: "' acknowledge '"\n']);
+% File: Acknoledge.m @ LabMaxProSSIM
+% Author: Urs Hofmann
+% Mail: hofmannu@biomed.ee.ethz.ch
+% Date: unknown
+
+% Description: Checks if last command received is ok.
+
+function Acknowledge(pm)
+  acknowledge = readline(pm.serialObj);
+  % if we did not receive ok, throw error
+  if ~strcmp(acknowledge, 'OK')
+    txtMsg = ['Did not recieved OK, but: ', char(acknowledge)];
+    error(txtMsg);
   end
 end
