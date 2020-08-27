@@ -13,17 +13,18 @@
 classdef LabMaxProSSIM < handle
 
   properties % default properties, probaly most of your data
+    COM_PORT(1, :) char = 'COM13'; % com port of diode pm
     triggerMode(1, 1) uint8; % 0 = internal, 1 = external, 2 = CW. SET/GET
     bytesAvailable;
     measurementMode(1, 1) uint8; %0 = W, 1 = J, 2 = DBM
     wavelength(1, 1) single; % wavelength measured [nm]
     triggerLevel(1, 1) single; % in uJ
     triggerLevelPercent(1, 1) single; % in % of absolute range...
-    sensitivityLevel(1, 1); % 0 = low, 1 = medium, 2 = high
-    measurementRange(1, 1) double;
-    %     9.1510e-06
-    %     92.560e-06
-    %     925.00e-06
+    measurementRange(1, 1) double = 1; 
+    % 1 - low range <= 11.72 uJ
+    % 2 - mid range <= 119.0 uJ
+    % 3 - high range <= 1189 uJ
+
     itemSelect; %0 = PRI, 1 = QUAD, 2 = FLAG, 3 = SEQ, 4 = PER
                 %PRI Primary data value (includes Watts or Joules)
                 %QUAD X, Y coordinate values for quad LM probes
@@ -41,7 +42,6 @@ classdef LabMaxProSSIM < handle
   end
 
   properties (Constant) % can only be changed here in the def file
-    COM_PORT(1, :) char = 'COM13'; % com port of diode pm
     % in geraetemanger: LabMAX-Pro SSIM
     MEASUREMENT_MODE = struct('WATT', 0, 'JOULES', 1, 'DBM', 2);
     TRIGGER_MODE = struct('INTERNAL', 0, 'EXTERNAL', 1, 'CW',2);
@@ -79,6 +79,7 @@ classdef LabMaxProSSIM < handle
     errorCode; % errors stored as codes here
     sysStatus; % use SYSTem:STATus?
     isConnected(1, 1) logical = 0;
+    sensitivityLevel(1, 1); % 0 = low, 1 = medium, 2 = high
   end
 
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -90,17 +91,20 @@ classdef LabMaxProSSIM < handle
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Constructor and Desctructor
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    function pm = LabMaxProSSIM(~, doConnect)
+    function pm = LabMaxProSSIM(varargin)
       % constructor, called when creating instance of this class
-      switch nargin
-        case 1
-          % doConnect = doConnect
-        case 0
-          doConnect = pm.CONNECT_ON_STARTUP; % use default setting
-        otherwise
-          short_warn('[PowerMeter] Wrong number of input arguemnts. Using default settings!');
+      if nargin < 1
+        doConnect = true;
       end
 
+      if (nargin >= 1)
+        doConnect = varargin{1};
+      end
+
+      if (nargin >= 2)
+        pm.COM_PORT = varargin{2};
+      end
+      
       % connect to power meter on startup
       if doConnect
         pm.Open_Connection;
@@ -135,17 +139,6 @@ classdef LabMaxProSSIM < handle
       pm.Set_Property(txtMsg);
     end
 
-    function set.triggerLevelPercent(pm, levelPercent)
-      txtMsg = ['TRIGger:PERcent:LEVel ' num2str(levelPercent)];
-      pm.Set_Property(txtMsg);
-    end
-
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    function set.triggerLevel(pm, level)
-      txtMsg = ['TRIGger:LEVel ' num2str(level)];
-      pm.Set_Property(txtMsg);
-    end
-
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     function set.wavelength(pm, wavelength)
       txtMsg = ['CONFigure:WAVElength:WAVElength ' num2str(wavelength)];
@@ -175,9 +168,7 @@ classdef LabMaxProSSIM < handle
     %     flagHandshaking = 1;
     %   end
     % end
-
     
-
     % trigger mode of powermeter
     function set.triggerMode(pm, mode)
       % 0 = internal, 1 = external, 2 = CW. SET/GET
@@ -204,13 +195,17 @@ classdef LabMaxProSSIM < handle
       pm.Acknowledge();
       
       % Check desired range and set corresponding serialCommandString
+      % 1 - low range <= 11.72 uJ
+      % 2 - mid range <= 119.0 uJ
+      % 3 - high range <= 1189 uJ
+  
       switch range
-        case 9.1510e-06
-          serialCommandString = ['CONF:RANGE:SEL 9.1510e-06'];
-        case 92.560e-06
-          serialCommandString = ['CONF:RANGE:SEL 92.560e-06'];
-        case 925.00e-06
-          serialCommandString = ['CONF:RANGE:SEL 915.10e-06'];
+        case 0 % low
+          serialCommandString = ['CONF:RANGE:SEL 10.0e-06'];
+        case 1 % mid
+          serialCommandString = ['CONF:RANGE:SEL 100.0e-06'];
+        case 2 % high
+          serialCommandString = ['CONF:RANGE:SEL 1000.0e-06'];
         otherwise
           error('Invalid range');
       end
@@ -218,14 +213,15 @@ classdef LabMaxProSSIM < handle
       % Push serialCommandString to power meter and wait for response
       writeline(pm.serialObj, serialCommandString);
       pm.Acknowledge();
-
     end
 
     function measurementRange = get.measurementRange(pm)
-      measurementRange = str2double(pm.Query('CONFigure:RANGe:SELect?'));
+      [answer] = pm.Query('CONF:RANG:SEL?');
+      measurementRange = str2double(answer);
     end
 
 
+    % --------------------------------------------------------------------------
     function set.itemSelect(pm, items)
     %%0 = PRI, 1 = QUAD, 2 = FLAG, 3 = SEQ, 4 = PER
       itemCom = [];
@@ -252,7 +248,7 @@ classdef LabMaxProSSIM < handle
       pause(0.5);
       newBytes = fread(pm.serialObj,pm.bytesAvailable,'char');
       msg = char(newBytes)';
-      error = regexp(msg,'OK');
+      error = regexp(msg,'OK','once');
       if(isempty(error))
           disp('[PowerMeter] Set item select failed');
       else
@@ -277,15 +273,29 @@ classdef LabMaxProSSIM < handle
       end
     end
 
+    % --------------------------------------------------------------------------
+    % set trigger level in percent from device
+    function set.triggerLevelPercent(pm, levelPercent)
+      txtMsg = ['TRIGger:PERcent:LEVel ' num2str(levelPercent)];
+      pm.Set_Property(txtMsg);
+    end
     % return trigger level in percent from device
     function triggerLevelPercent = get.triggerLevelPercent(pm)
       triggerLevelPercent = str2double(pm.Query('TRIGger:PERcent:LEVel?'));
+    end
+
+    % --------------------------------------------------------------------------
+    % set absolute level in percent from device
+    function set.triggerLevel(pm, level)
+      txtMsg = ['TRIGger:LEVel ' num2str(level)];
+      pm.Set_Property(txtMsg);
     end
 
     % return trigger level from device
     function triggerLevel = get.triggerLevel(pm)
       triggerLevel = str2double(pm.Query('TRIGger:LEVel?'));
     end
+    
 
     % returns wavelength in nm
     function wavelength = get.wavelength(pm)

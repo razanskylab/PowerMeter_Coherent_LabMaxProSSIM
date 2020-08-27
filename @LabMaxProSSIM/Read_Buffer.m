@@ -34,5 +34,7 @@ function [signal, flag, freq] = Read_Buffer(pm)
   response = char(allBytes)';
   [signal, flag, freq] = pm.Process_Data(response);
   readString = num_to_SI_string(totalBytes, 3);
-  %fprintf(['[PowerMeter] Reading %i shots (' readString 'B) took %1.2f seconds.\n'],length(signal),toc);
+
+  fprintf('[PowerMeter] Reading %i shots (%sB) took %1.2f seconds.\n',...
+    length(signal),readString,toc);
 end
