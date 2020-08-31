@@ -3,11 +3,16 @@
 % Mail: hofmannu@biomed.ee.ethz.ch
 % Date: 12.05.2020
 
-% Description: Resets the power meter to its original settings.
+% This command resets all operational parameters to their power-on
+% states. Reset does not affect calibration settings or user persistent
+% settings.
+% this affects settings like wavelength, trigger levels etc, 
+% those have to be set again
 
-function Reset(pm)
-  % Clears all error records in the error queue
-  writeline(pm.serialObj, '*RST');
-  pm.Acknowledge();
+function Reset(Obj)
+  writeline(Obj.serialObj, '*RST');
+  Obj.Acknowledge();
+  pause(0.5);
+  Obj.Restore_Defaults();
 
 end

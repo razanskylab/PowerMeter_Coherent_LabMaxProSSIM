@@ -1,16 +1,21 @@
-% File: Read_Buffer.m @ LabMaxProSSIM
-% Author: Urs Hofmann
-% Mail: hofmannu@biomed.ee.ethz.ch
+function [ppe, flag, freq] = Read_Buffer(Obj,ignoreEmptyRead)
+  % ppe - per pulse energies
+  % flag - true when PPE was read eronous...
+  % freq - not sure tbh...
+  if nargin < 2
+    ignoreEmptyRead = false;
+  end
 
-function [signal, flag, freq] = Read_Buffer(pm)
+  ppe = [];
+  flag = [];
+  freq = [];
+
   READ_AT_ONCE = 10*2^10; % how many bytes to read at once
   % 10 kB (10*2^10) seems to be optimal
-  % FIXME writing bytes in the order they are read, probably needs to be flipped
-  % in order to get chronological order...
-  nBytesLeft = pm.bytesAvailable;
+  nBytesLeft = Obj.bytesAvailable;
   totalBytes = nBytesLeft;
   iRead = 1;
-  allBytes = zeros(pm.bytesAvailable, 1);
+  allBytes = zeros(Obj.bytesAvailable, 1);
   tic;
   if nBytesLeft
     while nBytesLeft % read multiple times, not all at once
@@ -19,22 +24,25 @@ function [signal, flag, freq] = Read_Buffer(pm)
       else
         readBytes = nBytesLeft;
       end
-      newBytes = read(pm.serialObj, readBytes, 'char');
+      newBytes = read(Obj.serialObj, readBytes, 'char');
       startIdx = (iRead - 1) * READ_AT_ONCE + 1;
       endIdx = startIdx + readBytes - 1;
       allBytes(startIdx:endIdx) = newBytes;
-      % readString = num_to_SI_string(readBytes,3);
-      % fprintf(['Reading ' readString 'B took %f seconds.\n'],toc);
       iRead = iRead + 1;
       nBytesLeft = nBytesLeft - readBytes;
     end
+    response = char(allBytes)';
+    % check what data we got back...
+    [ppe, flag, freq] = Obj.Process_Data(response);
+        
+    readString = num_to_SI_string(totalBytes, 3);
+    infoStr = sprintf('Reading %i shots (%sB) took %1.2f seconds.\n',...
+      length(ppe),readString,toc);
+    Obj.VPrintF_With_ID(infoStr);
+  elseif ignoreEmptyRead
+    % we did not get bytes but we are OK with that
   else
-    warning('No bytes available for reading!')
+    short_warn([Obj.classId ' No bytes available for reading!'])
   end
-  response = char(allBytes)';
-  [signal, flag, freq] = pm.Process_Data(response);
-  readString = num_to_SI_string(totalBytes, 3);
 
-  fprintf('[PowerMeter] Reading %i shots (%sB) took %1.2f seconds.\n',...
-    length(signal),readString,toc);
 end

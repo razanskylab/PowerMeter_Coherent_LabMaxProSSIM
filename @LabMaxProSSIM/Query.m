@@ -4,7 +4,6 @@
 % Date: unknown
 
 % Description: send a queryCommand to the pm and return the answer string
-% flagAcknoledge: should we check for ok after naming?
 
 function [answer,remAnswer] = Query(pm, queryCommand)
   % we need to run through this twice since it always first returns old info

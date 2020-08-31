@@ -5,21 +5,28 @@
 
 % Description: Starts recording using powermeter
 
-function Start_Stream(pm, nPoints)
-  pm.VPrintf('Starting power meter data stream... ', 1);
+function Start_Stream(Obj, nPoints)
+  Obj.Clear_Serial_Buffer(); % just to be on the safe side... 
 
-  flush(pm.serialObj);
-  
+  % This command enables data streaming for a continuous or fixed
+  % length transmission. An optional number of samples between 0 and
+  % 2^32 -1 can be selected
+  % The device will record data and send it over the serial port?
+
+  tic;
   switch nargin
-  	case 1
-    	command = 'STARt';
-  	case 2
-    	command = ['STARt ' num2str(round(nPoints))];
-    otherwise
-    	error('Invalid number of input arguments');
+  case 1
+    Obj.VPrintF_With_ID('Starting data stream...');
+    command = 'STARt';
+  case 2
+    infoStr = sprintf('Starting %i-point data stream...',nPoints);
+    Obj.VPrintF_With_ID(infoStr);
+    command = sprintf('STARt %i',nPoints);
+  otherwise
+    error('Invalid number of input arguments');
   end
   
-  writeline(pm.serialObj, command);
-
-  pm.VPrintf('done!\n', 0);
+  writeline(Obj.serialObj, command);
+  Obj.Acknowledge();
+  Obj.Done();
 end

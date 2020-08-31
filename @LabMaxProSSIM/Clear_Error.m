@@ -1,19 +1,8 @@
-function Clear_Error(pm)
+function Clear_Error(Obj)
   % Clears all error records in the error queue
-  fprintf(pm.serialObj,'SYSTem:ERRor:CLEar');
-
-  pause(0.05);
-
-  newBytes = fread(pm.serialObj,pm.bytesAvailable,'char');
-
-  msg = char(newBytes)';
-
-  error = regexp(msg,'OK');
-
-  if(isempty(error))
-      disp('failed!');
-  else
-      disp(['done!']);
-  end
-
+  tic;
+  Obj.VPrintF_With_ID('Clearing all errors...\n');
+  writeline(Obj.serialObj,'SYSTem:ERRor:CLEar');
+  Obj.Acknowledge();
+  Obj.Done(toc);
 end
