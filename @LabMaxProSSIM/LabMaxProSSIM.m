@@ -45,7 +45,7 @@ classdef LabMaxProSSIM < BaseHardwareClass
     ITEM_SELECT = struct('PRI', 0, 'QUAD', 1, 'FLAG', 2, 'SEQ', 3, 'PER', 4);
     % default values use when running Obj.Initialize();
     DEFAULT_WAVELENGTH(1, 1) double = 532;
-    DEFAULT_TRIGGER_LEVEL(1, 1) double = 500e-9; % high enough to not cause false triggers
+    DEFAULT_TRIGGER_LEVEL(1, 1) double = 700e-9; % high enough to not cause false triggers
     DEFAULT_TRIG_MODE = LabMaxProSSIM.TRIGGER_MODE.INTERNAL;
     DEFAULT_MEAS_MODE = LabMaxProSSIM.MEASUREMENT_MODE.JOULES;
     DEFAULT_MEAS_RANGE = LabMaxProSSIM.MEAS_RANGES.LOW;
@@ -256,9 +256,16 @@ classdef LabMaxProSSIM < BaseHardwareClass
       writeline(Obj.serialObj, serialCommandString);
       Obj.Acknowledge();
     end
-    function measurementRange = get.measurementRange(pm)
-      [answer] = pm.Query('CONF:RANG:SEL?')
-      % measurementRange = str2double(answer);
+    function measurementRange = get.measurementRange(Obj)
+      [answer] = Obj.Query('CONF:RANG:SEL?');
+      measurementRange = str2double(answer);
+      if measurementRange == 1.1720e-05
+        Obj.VPrintF_With_ID('Low measurement range (max is ~11 uJ).\n');
+      elseif measurementRange == 1.1900e-04
+        Obj.VPrintF_With_ID('Medium measurement range (max is ~110 uJ).\n');
+      elseif measurementRange > 0.001
+        Obj.VPrintF_With_ID('High measurement range (max is ~1 mJ).\n');
+      end
     end
  
     function flagHandshaking = get.flagHandshaking(pm)

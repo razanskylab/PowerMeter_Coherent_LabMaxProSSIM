@@ -21,5 +21,6 @@ function Restore_Defaults(Obj)
   Obj.measurementMode = Obj.DEFAULT_MEAS_MODE;
   Obj.triggerLevel = Obj.DEFAULT_TRIGGER_LEVEL;
   Obj.triggerMode = Obj.DEFAULT_TRIG_MODE;
+  Obj.measurementRange = Obj.DEFAULT_MEAS_RANGE;
   Obj.Done();
 end

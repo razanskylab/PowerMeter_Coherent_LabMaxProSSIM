@@ -37,11 +37,16 @@ function [ppes, flags, freqs] = Process_Data(pm, response)
   freqs = 1 ./ (str2double(rawFreqs) * 1e-6);
 
   if any(flags)
+    flags = unique(flags);
+    flags(~isnumeric(flags)) = []; % there seems to be an empty line in flags as well
+    flags(flags==0) = []; % we are fine with 0 
     short_warn('Recorded data points with flagss: ');
     short_warn(sprintf('   %i\n',unique(flags)));
     goodData = sum((flags==0));
     allData = numel(flags);
     short_warn(sprintf(' %2.f%% of data was trash!',(1-goodData./allData)*100));
+    % we remove all read outs where flag was non-zero
+    ppes = ppes(~flags); 
   end
 
 
