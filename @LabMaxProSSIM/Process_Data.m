@@ -5,7 +5,7 @@
 
 %^ Description: Processes response from power meter.
 
-function [ppes, flags, freqs] = Process_Data(pm, response)
+function [ppes, flags, freqs, cleanPpes] = Process_Data(pm, response)
   % ppes - per pulse energies in Joule
   % flags - infos on what was actually measured (see below)
   % freqs - 1./period wher period is expressed in decimal integer as microseconds
@@ -30,24 +30,35 @@ function [ppes, flags, freqs] = Process_Data(pm, response)
   rawPpes = rawData(1:3:end);
   ppes = str2double(rawPpes);
   
-  rawFlagss = rawData(2:3:end);
-  flags = str2double(rawFlagss);
+  rawFlags = rawData(2:3:end);
+  flags = str2double(rawFlags);
   
   rawFreqs = rawData(3:3:end);
   freqs = 1 ./ (str2double(rawFreqs) * 1e-6);
 
   if any(flags)
-    flags = unique(flags);
-    flags(~isnumeric(flags)) = []; % there seems to be an empty line in flags as well
-    flags(flags==0) = []; % we are fine with 0 
-    short_warn('Recorded data points with flagss: ');
-    short_warn(sprintf('   %i\n',unique(flags)));
-    goodData = sum((flags==0));
-    allData = numel(flags);
-    short_warn(sprintf(' %2.f%% of data was trash!',(1-goodData./allData)*100));
-    % we remove all read outs where flag was non-zero
-    ppes = ppes(~flags); 
-  end
+    allShots = numel(flags);
+    goodShots = sum((flags==0));
+    satShots = sum((flags==10));
+    missedShots = sum((flags==200));
+    otherProb = allShots - goodShots - satShots - missedShots;
 
+    if satShots
+      short_warn(sprintf(' %2.f%% of shots were saturated (error 10)!',...
+        (satShots./allShots)*100));
+    end
+    if missedShots
+      short_warn(sprintf(' %2.f%% of shots were missed (error 200)!',...
+        (missedShots./allShots)*100));
+    end
+    if otherProb
+      short_warn(sprintf(' %2.f%% of shots had other problems!',...
+        (otherProb./allShots)*100));
+    end
+    % we remove all read outs where flag was non-zero
+    cleanPpes = ppes(~flags); 
+  else
+    cleanPpes = ppes;
+  end
 
 end

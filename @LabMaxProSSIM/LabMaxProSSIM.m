@@ -243,11 +243,11 @@ classdef LabMaxProSSIM < BaseHardwareClass
       Obj.flagRangeAuto = false; % disable auto range just in case...
       switch range
         case 0 % low
-          serialCommandString = 'CONF:RANGE:SEL 0.000010';
+          serialCommandString = 'CONF:RANGE:SEL 0.000008';
         case 1 % mid
-          serialCommandString = 'CONF:RANGE:SEL 0.000100';
+          serialCommandString = 'CONF:RANGE:SEL 0.000080';
         case 2 % high
-          serialCommandString = 'CONF:RANGE:SEL 0.001000';
+          serialCommandString = 'CONF:RANGE:SEL 0.000800';
         otherwise
           error('Invalid range');
       end
@@ -259,11 +259,11 @@ classdef LabMaxProSSIM < BaseHardwareClass
     function measurementRange = get.measurementRange(Obj)
       [answer] = Obj.Query('CONF:RANG:SEL?');
       measurementRange = str2double(answer);
-      if measurementRange == 1.1720e-05
-        Obj.VPrintF_With_ID('Low measurement range (max is ~11 uJ).\n');
-      elseif measurementRange == 1.1900e-04
-        Obj.VPrintF_With_ID('Medium measurement range (max is ~110 uJ).\n');
-      elseif measurementRange > 0.001
+      if measurementRange <= 15e-06
+        Obj.VPrintF_With_ID('Low measurement range (max is ~9-11 uJ).\n');
+      elseif measurementRange <= 150e-06
+        Obj.VPrintF_With_ID('Medium measurement range (max is ~90-110 uJ).\n');
+      else
         Obj.VPrintF_With_ID('High measurement range (max is ~1 mJ).\n');
       end
     end
