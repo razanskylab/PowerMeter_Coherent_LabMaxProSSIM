@@ -8,6 +8,9 @@
 function Acknowledge(Obj)
   acknowledge = readline(Obj.serialObj);
   % if we did not receive ok, throw error
+  if isempty(acknowledge)
+      error('[PM] Did not recieved acknowledge!');
+  end
   switch acknowledge
   case 'OK'
     % do nothing, this is expected outcome

@@ -6,6 +6,9 @@
 % notes heavily modified by Joe in 08/2020...
 
 function [ppeBuffer,fullBuffer] = Live_Preview(Obj, varargin)
+	if isempty(Obj)
+		error('Power meter class is empty! Need to initialize!');
+	end
 	oldVerbose = Obj.verboseOutput;
 	Obj.verboseOutput = false;
 	
