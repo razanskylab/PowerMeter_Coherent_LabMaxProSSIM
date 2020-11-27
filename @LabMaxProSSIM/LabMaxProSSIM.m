@@ -105,8 +105,10 @@ classdef LabMaxProSSIM < BaseHardwareClass
       
       % connect to power meter on startup
       if doConnect
-        pm.Open_Connection;
-        pm.Reset();
+        success = pm.Open_Connection;
+        if (success == 1)
+            pm.Reset();
+        end
       else
         fprintf('[PowerMeter] Initialized but not connected yet.\n')
       end
