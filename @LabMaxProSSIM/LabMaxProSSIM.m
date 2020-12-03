@@ -89,7 +89,7 @@ classdef LabMaxProSSIM < BaseHardwareClass
   methods
 
     %---------------------------------------------------------------------------
-    function pm = LabMaxProSSIM(varargin)
+    function This = LabMaxProSSIM(varargin)
       % constructor, called when creating instance of this class
       if nargin < 1
         doConnect = true;
@@ -100,15 +100,16 @@ classdef LabMaxProSSIM < BaseHardwareClass
       end
 
       if (nargin >= 2)
-        pm.COM_PORT = varargin{2};
+        This.COM_PORT = varargin{2};
       end
       
       % connect to power meter on startup
       if doConnect
-        success = pm.Open_Connection;
+        success = This.Open_Connection;
         if (success == 1)
-            pm.Reset();
+            This.Reset();
         end
+        This.Measure_Noise_Floor(true);
       else
         fprintf('[PowerMeter] Initialized but not connected yet.\n')
       end
