@@ -5,11 +5,19 @@
 
 % Description: closes the connection to the power meter.
 
-function [] = Close_Connection(pm)
+function [] = Close_Connection(Obj)
   % close serial connection to pm, delete serialObj
-  % fclose(pm.serialObj);  % always, always want to close serial connection
-  delete(pm.serialObj);
-  pm.connectionStatus = 'Power Meter Connection Closed';
-  pm.isConnected = 0;
-  fprintf('[PowerMeter] Connection closed.\n');
+  tic;
+  Obj.connectionStatus = 'Power Meter Connection Closed';
+  Obj.isConnected = 0;
+  
+  Obj.VPrintF_With_ID('Closing connection...');
+  if ~isempty(Obj.serialObj)
+    % Obj.serialObj.close(); % no longer exists for serialport
+    delete(Obj.serialObj);
+    Obj.serialObj = [];
+    Obj.Done();
+  else
+    Obj.VPrintF('was not open!\n');
+  end
 end

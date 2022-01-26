@@ -1,8 +1,3 @@
-% File: Stream.m @ LabMaxProSSIM
-% Author: Johannes Rebling
-% Mail: johannesrebling@gmail.com
-% Date: unknown
-
 function [signal, flag, freq] = Stream(pm, nPoints)
   switch nargin
   case 1
