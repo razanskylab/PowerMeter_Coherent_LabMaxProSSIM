@@ -19,6 +19,7 @@ function Open_Connection(pm)
     'FlowControl', pm.FLOW_CONTROL, ...
     'Parity', pm.PARITY);
 
+
   configureTerminator(pm.serialObj, pm.READTERMINATOR, pm.WRITETERMINATOR);
   % setup serial connection correctly
   % set(pm.serialObj, 'InputBufferSize', pm.INPUT_BUFFER_SIZE);

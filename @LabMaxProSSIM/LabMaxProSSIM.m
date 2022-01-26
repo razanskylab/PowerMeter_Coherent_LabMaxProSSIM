@@ -41,7 +41,6 @@ classdef LabMaxProSSIM < handle
   end
 
   properties (Constant) % can only be changed here in the def file
-    COM_PORT(1, :) char = 'COM13'; % com port of diode pm
     % in geraetemanger: LabMAX-Pro SSIM
     MEASUREMENT_MODE = struct('WATT', 0, 'JOULES', 1, 'DBM', 2);
     TRIGGER_MODE = struct('INTERNAL', 0, 'EXTERNAL', 1, 'CW',2);
@@ -74,11 +73,12 @@ classdef LabMaxProSSIM < handle
   end
 
   properties (SetAccess=private) % can be seen but not set by user
+    COM_PORT(1, :) char = 'COM5'; % com port of diode pm
     serialObj; % serial port object, required for Matlab to pm comm.
     connectionStatus = 'Connection Closed';  % Connection stored as text
     errorCode; % errors stored as codes here
     sysStatus; % use SYSTem:STATus?
-    isConnected(1, 1) logical = 0;
+    isConnected(1, 1) logical = 0; % is the serial connection open
   end
 
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -100,6 +100,8 @@ classdef LabMaxProSSIM < handle
         otherwise
           short_warn('[PowerMeter] Wrong number of input arguemnts. Using default settings!');
       end
+
+      pm.COM_PORT = get_com_port('PM');
 
       % connect to power meter on startup
       if doConnect
@@ -135,18 +137,19 @@ classdef LabMaxProSSIM < handle
       pm.Set_Property(txtMsg);
     end
 
+    % define trigger level of power meter in percent
     function set.triggerLevelPercent(pm, levelPercent)
       txtMsg = ['TRIGger:PERcent:LEVel ' num2str(levelPercent)];
       pm.Set_Property(txtMsg);
     end
 
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % define trigger level of power meter in joule
     function set.triggerLevel(pm, level)
       txtMsg = ['TRIGger:LEVel ' num2str(level)];
       pm.Set_Property(txtMsg);
     end
 
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % set wavelength for measurement
     function set.wavelength(pm, wavelength)
       txtMsg = ['CONFigure:WAVElength:WAVElength ' num2str(wavelength)];
       pm.Set_Property(txtMsg);
