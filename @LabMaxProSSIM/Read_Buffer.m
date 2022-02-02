@@ -36,9 +36,9 @@ function [ppe, flag, freq] = Read_Buffer(Obj,ignoreEmptyRead)
     [ppe, flag, freq] = Obj.Process_Data(response);
         
     readString = num_to_SI_string(totalBytes, 3);
-    infoStr = sprintf('Reading %i shots (%sB) took %1.2f seconds.\n',...
+    infoStr = sprintf('[LabMaxProSSIM] Reading %i shots (%sB) took %1.2f seconds.\n',...
       length(ppe),readString,toc);
-    Obj.VPrintF_With_ID(infoStr);
+    fprintf(infoStr);
   elseif ignoreEmptyRead
     % we did not get bytes but we are OK with that
   else

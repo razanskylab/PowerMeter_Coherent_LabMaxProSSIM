@@ -9,14 +9,14 @@
 function Restore_Defaults(Obj)
   % Obj.flagHandshaking = 1; % no longer optional...we always handshake
   tic;
-  Obj.VPrintF_With_ID('Restoring default flags...');
+  fprintf('[LabMaxProSSIM] Restoring default flags...');
   Obj.flagSpeedup = true;
   Obj.flagRangeAuto = false;
   Obj.flagWavelengthcorrection = true;
   Obj.Done();
   
   tic;
-  Obj.VPrintF_With_ID('Restoring default settings...');
+  fprintf('[LabMaxProSSIM] Restoring default settings...');
   Obj.wavelength = Obj.DEFAULT_WAVELENGTH;
   Obj.measurementMode = Obj.DEFAULT_MEAS_MODE;
   Obj.triggerLevel = Obj.DEFAULT_TRIGGER_LEVEL;

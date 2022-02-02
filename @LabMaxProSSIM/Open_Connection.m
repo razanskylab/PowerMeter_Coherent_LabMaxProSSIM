@@ -8,7 +8,7 @@
 
 function [success] = Open_Connection(Obj)
   tic;
-  Obj.VPrintF_With_ID('Establishing serial connection... ');
+  fprintf('[LabMaxProSSIM] Establishing serial connection... ');
 
   portsAvail =  serialportlist("available");
   comPortAvail = any(strcmp(portsAvail ,Obj.COM_PORT));

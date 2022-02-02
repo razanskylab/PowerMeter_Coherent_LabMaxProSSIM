@@ -16,7 +16,7 @@ function Start_Stream(Obj, nPoints)
   tic;
   switch nargin
   case 1
-    Obj.VPrintF_With_ID('Starting data stream...');
+    fprintf('[LabMaxProSSIM] Starting data stream...');
     command = 'STARt';
   case 2
     infoStr = sprintf('Starting %i-point data stream...',nPoints);

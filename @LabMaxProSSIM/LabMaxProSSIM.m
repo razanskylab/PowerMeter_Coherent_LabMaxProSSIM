@@ -13,7 +13,6 @@ classdef LabMaxProSSIM < BaseHardwareClass
 
   properties % default properties, probaly most of your data
     classId char = '[PM]'; % this is displayed when using VPrintF_With_ID
-    COM_PORT(1, :) char; % com port of diode pm
     triggerMode(1, 1) uint8; % 0 = internal, 1 = external
     measurementMode(1, 1) uint8 = 1; %0 = W, 1 = J, 2 = DBM
     wavelength(1, 1) single; % wavelength measured [nm]
@@ -33,6 +32,7 @@ classdef LabMaxProSSIM < BaseHardwareClass
     flagAreaCorrection(1, 1) logical = 0; % correct for sensor area?
     flagSpeedup(1, 1) logical = 0;
     flagRangeAuto(1, 1) logical = 0;
+    COM_PORT(1, :) char = 'COM5'; % com port of diode pm
   end
 
   properties (Constant) % can only be changed here in the def file
@@ -68,15 +68,17 @@ classdef LabMaxProSSIM < BaseHardwareClass
 
 
   properties (Dependent) %callulated based on other values
+    temperature(1, 1) single; % temperature of the probe
     bytesAvailable;
     flagHandshaking; % we always want handshaking I think...
+    minTriggerLevel(1, 1) single;
+    maxTriggerLevel(1, 1) single;
   end
 
   properties (GetAccess=private) % can't be seen but can be set by user
   end
 
   properties (SetAccess=private) % can be seen but not set by user
-    COM_PORT(1, :) char = 'COM5'; % com port of diode pm
     serialObj; % serial port object, required for Matlab to pm comm.
     connectionStatus = 'Connection Closed';  % Connection stored as text
     errorCode; % errors stored as codes here
@@ -88,7 +90,7 @@ classdef LabMaxProSSIM < BaseHardwareClass
   %% "Standard" methods, 
   methods
 
-    %---------------------------------------------------------------------------
+    % class constructor
     function This = LabMaxProSSIM(varargin)
       % constructor, called when creating instance of this class
       if nargin < 1
@@ -99,21 +101,17 @@ classdef LabMaxProSSIM < BaseHardwareClass
         doConnect = varargin{1};
       end
 
-      pm.COM_PORT = get_com_port('PM');
+      This.COM_PORT = get_com_port('PM');
 
       % connect to power meter on startup
       if doConnect
-        success = This.Open_Connection;
-        if (success == 1)
-            This.Reset();
-        end
-        This.Measure_Noise_Floor(true);
+        success = This.Open_Connection();
       else
         fprintf('[PowerMeter] Initialized but not connected yet.\n')
       end
     end
 
-    %---------------------------------------------------------------------------
+    % class destructor
     function delete(Obj)
       Obj.Close_Connection();
     end
@@ -123,24 +121,20 @@ classdef LabMaxProSSIM < BaseHardwareClass
       bytesRemoved = Obj.bytesAvailable;
       Obj.serialObj.flush(); % just to be on the safe side... 
       if bytesRemoved
-        infoStr = sprintf('Cleared %i Bytes from serial buffer!\n', bytesRemoved);
-        Obj.VPrintF_With_ID(infoStr);
+        fprintf('[LabMaxProSSIM] Cleared %i Bytes from serial buffer!\n', bytesRemoved);
       end
       remainingBytes = Obj.bytesAvailable;
       if remainingBytes
-        short_warn('Bytes remained after clearing the buffer!');
+        warning('Bytes remained after clearing the buffer!');
       end
     end
-
-    function response = Process_Msg(~, msg)
-      % get rid of 'CR/LF' 'OK' linebreak and ','
-      response = strsplit(msg,{',', '\n', 'OK', char(13), char(12)});
-      response(strcmp('',response)) = [];       %remove null
-    end
+    
 
     function [] = Display_Status(Obj)
-      Obj.VPrintF_With_ID(['Connection Status: '  Obj.connectionStatus '\n']);
+      fprintf(['[LabMaxProSSIM] Connection Status: '  Obj.connectionStatus '\n']);
     end
+
+    response = Process_Msg(~, msg);
   end
 
   % SET/GET Methods
@@ -152,7 +146,6 @@ classdef LabMaxProSSIM < BaseHardwareClass
       bytes = pm.serialObj.NumBytesAvailable;
     end
 
-    % --------------------------------------------------------------------------
     % set/get triggerMode 0 = internal, 1 = external 
     function set.triggerMode(Obj, mode)
       % 0 = internal, 1 = external, 2 = CW. SET/GET
@@ -168,6 +161,7 @@ classdef LabMaxProSSIM < BaseHardwareClass
       txtMsg = ['TRIGger:SOURce ' mode];
       Obj.Set_Property(txtMsg);
     end
+
     function triggerMode = get.triggerMode(Obj)
       triggerMode = Obj.Query('TRIGger:SOURce?');
       switch triggerMode
@@ -196,6 +190,7 @@ classdef LabMaxProSSIM < BaseHardwareClass
       txtMsg = ['CONFigure:MEASure:MODe ', measurementMode];
       pm.Set_Property(txtMsg);
     end
+
     function measurementMode = get.measurementMode(pm)
       measurementMode = pm.Query('CONFigure:MEASure:MODe?');
       switch measurementMode
@@ -210,7 +205,6 @@ classdef LabMaxProSSIM < BaseHardwareClass
       end
     end
 
-    
     % set/get wavelength (nm) 
     function set.wavelength(pm, wavelength)
       txtMsg = ['CONFigure:WAVElength:WAVElength ' num2str(wavelength)];
@@ -219,6 +213,15 @@ classdef LabMaxProSSIM < BaseHardwareClass
 
     function wavelength = get.wavelength(pm)
       wavelength = str2double(pm.Query('CONFigure:WAVElength:WAVElength?'));
+    end
+
+    % get functions for boundaries of trigger level
+    function minTrigLvl = get.minTriggerLevel(pm)
+      minTrigLvl = str2double(pm.Query('TRIGger:LEVel? MIN'));
+    end
+
+    function maxTrigLvl = get.maxTriggerLevel(pm)
+      maxTrigLvl = str2double(pm.Query('TRIGger:LEVel? MAX'));
     end
 
     % set/get absolute level in J 
@@ -245,11 +248,11 @@ classdef LabMaxProSSIM < BaseHardwareClass
       Obj.flagRangeAuto = false; % disable auto range just in case...
       switch range
         case 0 % low
-          serialCommandString = 'CONF:RANGE:SEL 0.000008';
+          serialCommandString = 'CONFigure:RANGE:SELect 9.151E-06';
         case 1 % mid
-          serialCommandString = 'CONF:RANGE:SEL 0.000080';
+          serialCommandString = 'CONFigure:RANGE:SELect 9.151E-06';
         case 2 % high
-          serialCommandString = 'CONF:RANGE:SEL 0.000800';
+          serialCommandString = 'CONFigure:RANGE:SELect 0.000925';
         otherwise
           error('Invalid range');
       end
@@ -258,18 +261,20 @@ classdef LabMaxProSSIM < BaseHardwareClass
       writeline(Obj.serialObj, serialCommandString);
       Obj.Acknowledge();
     end
+
     function measurementRange = get.measurementRange(Obj)
       [answer] = Obj.Query('CONF:RANG:SEL?');
       measurementRange = str2double(answer);
-      if measurementRange <= 15e-06
-        Obj.VPrintF_With_ID('Low measurement range (max is ~9-11 uJ).\n');
-      elseif measurementRange <= 150e-06
-        Obj.VPrintF_With_ID('Medium measurement range (max is ~90-110 uJ).\n');
-      else
-        Obj.VPrintF_With_ID('High measurement range (max is ~1 mJ).\n');
-      end
+      % if measurementRange <= 15e-06
+      %   fprintf('Low measurement range (max is ~9-11 uJ).\n');
+      % elseif measurementRange <= 150e-06
+      %   fprintf('Medium measurement range (max is ~90-110 uJ).\n');
+      % else
+      %   fprintf('High measurement range (max is ~1 mJ).\n');
+      % end
     end
  
+    % set/get handshaking
     function flagHandshaking = get.flagHandshaking(pm)
       txtMsg = ['SYSTem:COMMunicate:HANDshaking?'];
       answer = pm.Query(txtMsg);
@@ -280,16 +285,18 @@ classdef LabMaxProSSIM < BaseHardwareClass
       end
     end
 
-    % flagRangeAuto ------------------------------------------------------------
+    % set/get flagRangeAuto
     function set.flagRangeAuto(pm, flagRangeAuto)
       if flagRangeAuto
         modeTxt = 'ON';
+        warning("Auto ranging is not supported for all sensors");
       else
         modeTxt = 'OFF';
       end
       txtMsg = ['CONFigure:RANGe:AUTO ', modeTxt];
       pm.Set_Property(txtMsg);
     end
+
     function flagRangeAuto = get.flagRangeAuto(pm)
       response = pm.Query('CONFigure:RANGe:AUTO?');
       switch response
@@ -302,34 +309,33 @@ classdef LabMaxProSSIM < BaseHardwareClass
       end
     end
 
-    % --------------------------------------------------------------------------
     % set/get data items from power meter
     function set.itemSelect(pm, items)
 
       %0 = PRI, 1 = QUAD, 2 = FLAG, 3 = SEQ, 4 = PER
       itemCom = [];
       for index=1:length(items)
-          switch items(index)
-              case pm.ITEM_SELECT.PRI
-                  itemCom = [itemCom 'PRI,'];
-              case pm.ITEM_SELECT.QUAD
-                  itemCom = [itemCom 'QUAD,'];
-              case pm.ITEM_SELECT.FLAG
-                  itemCom = [itemCom 'FLAG,'];
-              case pm.ITEM_SELECT.SEQ
-                  itemCom = [itemCom 'SEQ,'];
-              case pm.ITEM_SELECT.PER
-                  itemCom = [itemCom 'PER,'];
-              otherwise
-                  disp('wrong item');
-                  disp('0 = PRI, 1 = QUAD, 2 = FLAG, 3 = SEQ, 4 = PER');
-                  return;
-          end
+        switch items(index)
+          case pm.ITEM_SELECT.PRI
+              itemCom = [itemCom 'PRI,'];
+          case pm.ITEM_SELECT.QUAD
+              itemCom = [itemCom 'QUAD,'];
+          case pm.ITEM_SELECT.FLAG
+              itemCom = [itemCom 'FLAG,'];
+          case pm.ITEM_SELECT.SEQ
+              itemCom = [itemCom 'SEQ,'];
+          case pm.ITEM_SELECT.PER
+              itemCom = [itemCom 'PER,'];
+          otherwise
+              disp('wrong item');
+              disp('0 = PRI, 1 = QUAD, 2 = FLAG, 3 = SEQ, 4 = PER');
+              return;
+        end
       end
       itemCom = itemCom(1:end-1);
       fprintf(pm.serialObj,['CONFigure:ITEMselect ' itemCom]);
       pause(0.5);
-      newBytes = fread(pm.serialObj,pm.serialObj.NumBytesAvailable,'char');
+      newBytes = fread(pm.serialObj, pm.serialObj.NumBytesAvailable, 'char');
       msg = char(newBytes)';
       error = regexp(msg,'OK','once');
       if(isempty(error))
@@ -374,6 +380,7 @@ classdef LabMaxProSSIM < BaseHardwareClass
       txtMsg = ['CONFigure:AREA:CORRection ', modeTxt];
       pm.Set_Property(txtMsg);
     end
+
     function flagAreaCorrection = get.flagAreaCorrection(pm)
       response = pm.Query('CONFigure:AREA:CORRection?');
       switch response
@@ -386,6 +393,12 @@ classdef LabMaxProSSIM < BaseHardwareClass
       end
     end
 
+    % probe temperature
+    function temperature = get.temperature(pm)
+      response = pm.Query('SYST:INF:PROBe:TEMPerature?');
+      temperature = str2double(response);
+    end
+
     % flagSpeedup, no idea what this acutally does -----------------------------
     function set.flagSpeedup(pm, flagSpeedup)
       if flagSpeedup
@@ -396,6 +409,7 @@ classdef LabMaxProSSIM < BaseHardwareClass
       txtMsg = ['CONFigure:SPEedup ', modeTxt];
       pm.Set_Property(txtMsg);
     end
+
     function flagSpeedup = get.flagSpeedup(pm)
       response = pm.Query('CONFigure:SPEedup?');
       switch response

@@ -7,6 +7,10 @@
 % only response required here is ok
 
 function Set_Property(pm, setCommand)
-	writeline(pm.serialObj, setCommand);
-	pm.Acknowledge();
+	if (pm.isConnected)
+		writeline(pm.serialObj, setCommand);
+		pm.Acknowledge();
+	else
+		error("Connection not even established yet");
+	end
 end

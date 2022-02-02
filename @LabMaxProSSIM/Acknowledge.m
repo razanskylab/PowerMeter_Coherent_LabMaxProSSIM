@@ -12,13 +12,15 @@ function Acknowledge(Obj)
       error('[PM] Did not recieved acknowledge!');
   end
   switch acknowledge
-  case 'OK'
-    % do nothing, this is expected outcome
-  case 'ERR-200'
-    short_warn('Recieved ERR-200, missing .Start_Stream?')
-  otherwise
-    txtMsg = ['Did not recieved OK, but: ', char(acknowledge)];
-    fprintf(2,txtMsg); % output as error, but not crashing
-    Obj.Clear_Serial_Buffer();
+    case 'OK'
+      % do nothing, this is expected outcome
+    case 'ERR-200'
+      warning('Recieved ERR-200, missing .Start_Stream?')
+    case 'ERR101'
+      error("ERR101: The command or query parameter is invalid");
+    otherwise
+      txtMsg = ['Did not recieved OK, but: ', char(acknowledge)];
+      fprintf(2, txtMsg); % output as error, but not crashing
+      Obj.Clear_Serial_Buffer();
   end
 end

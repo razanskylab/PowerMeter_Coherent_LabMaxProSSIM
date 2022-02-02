@@ -11,7 +11,7 @@ function [] = Close_Connection(Obj)
   Obj.connectionStatus = 'Power Meter Connection Closed';
   Obj.isConnected = 0;
   
-  Obj.VPrintF_With_ID('Closing connection...');
+  fprintf('[LabMaxProSSIM] Closing connection...');
   if ~isempty(Obj.serialObj)
     % Obj.serialObj.close(); % no longer exists for serialport
     delete(Obj.serialObj);

@@ -5,7 +5,7 @@ function [noise,trigLim] = Measure_Noise_Floor(This, autoSetTrig)
 	
 	t1 = tic;
 	noiseWait = 1; % measure noise level for this long
-	This.VPrintF_With_ID('Measuring noise floor for %2.1f s...',noiseWait)
+	fprintf('[LabMaxProSSIM] Measuring noise floor for %2.1f s...',noiseWait)
 	
 	% store old verbose settings
 	oldVerbose = This.verboseOutput;
@@ -34,7 +34,6 @@ function [noise,trigLim] = Measure_Noise_Floor(This, autoSetTrig)
 	
 	% restore old verbose settings
 	This.verboseOutput = oldVerbose;
-	This.Done(t1);
 
 	% at this trigger limit, no noise should be measured
 	trigLim = max(noise) + 4.*std(noise);
@@ -44,4 +43,6 @@ function [noise,trigLim] = Measure_Noise_Floor(This, autoSetTrig)
 	else
 		This.triggerLevel = oldTrigLevel;
 	end
+
+	fprintf("done after %.1f sec!", toc(t1));
 end 
